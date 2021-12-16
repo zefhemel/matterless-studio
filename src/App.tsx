@@ -1,36 +1,55 @@
-import React, {useRef} from "react";
+import React, {useState, useEffect} from 'react';
 
-import Editor from "@monaco-editor/react";
-import monaco from "monaco-editor";
+import {EditorState} from './components/editor';
+import ReactMarkdown from 'react-markdown';
+import MarkdownCodeBlock from './components/markdown-code-block';
 
 function App() {
-    const editorRef: React.MutableRefObject<monaco.editor.IStandaloneCodeEditor | null> = useRef(null);
+    const [markdownContent, setMarkdownContent] = useState('');
 
-    function handleEditorDidMount(editor: monaco.editor.IStandaloneCodeEditor) {
-        editorRef.current = editor;
+    useEffect(() => {
+        const {publicFilesURL} = window as any;
+        const testDataURL = `${publicFilesURL}/testdata/initial-markdown-content.md`;
+
+        fetch(testDataURL)
+            .then(r => r.text())
+            .then(setMarkdownContent);
+    }, []);
+
+    const saveCodeBlock = (editorState: EditorState) => {
+        const begin = markdownContent.indexOf(editorState.contentSource);
+        const end = begin + editorState.contentSource.length;
+
+        const newMarkdownContent = markdownContent.substring(0, begin) + editorState.content + markdownContent.substring(end);
+        setMarkdownContent(newMarkdownContent);
     }
 
-    function showValue() {
-        if (editorRef.current !== null) {
-            alert(editorRef.current.getValue());
-        }
+    const markdown = (
+        <ReactMarkdown
+            children={markdownContent}
+            components={{
+                code: (codeProps) => (
+                    <MarkdownCodeBlock
+                        saveCodeBlock={saveCodeBlock}
+                        {...codeProps}
+                    />
+                )
+            }}
+        />
+    );
+
+    const pageStyle: React.CSSProperties = {
+        paddingLeft: '20px',
+        paddingRight: '20px',
+        paddingBottom: '100px',
+        width: '60%',
+        margin: '0 auto',
     }
 
     return (
-        <>
-            <button onClick={showValue}>Show value</button>
-            <Editor
-                height="90vh"
-                defaultLanguage="markdown"
-                defaultValue="# Some header"
-                options={{
-                    minimap: {
-                        enabled: false
-                    },
-                }}
-                onMount={handleEditorDidMount}
-            />
-        </>
+        <div style={pageStyle}>
+            {markdown}
+        </div>
     );
 }
 
